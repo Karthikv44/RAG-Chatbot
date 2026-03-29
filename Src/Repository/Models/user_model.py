@@ -1,7 +1,9 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, DateTime
+
+from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from Src.Database.database import Base
 
 
@@ -16,6 +18,6 @@ class User(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    conversations: Mapped[list["Conversation"]] = relationship(  # noqa: F821
+    conversations: Mapped[list["Conversation"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
         "Conversation", back_populates="user", cascade="all, delete-orphan"
     )

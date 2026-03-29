@@ -1,0 +1,50 @@
+name: PR Quality Gate
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  quality-gate:
+    name: Pre-commit & Coverage Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run pre-commit checks
+        run: uv run pre-commit run --all-files
+
+      - name: Run tests with coverage
+        run: |
+          uv run pytest Test/ \
+            --cov=Src \
+            --cov-report=term-missing \
+            --cov-fail-under=70 \
+            -v
+        env:
+          # Dummy values — tests use mocks, no real AWS calls
+          AWS_ACCESS_KEY_ID: dummy
+          AWS_SECRET_ACCESS_KEY: dummy
+          AWS_REGION: us-east-1
+          BEDROCK_EMBEDDING_MODEL_ID: amazon.titan-embed-text-v2:0
+          BEDROCK_LLM_MODEL_ID: us.anthropic.claude-3-haiku-20240307-v1:0
+          DATABASE_URL: postgresql+asyncpg://postgres:password@localhost:5432/rag_chatbot
+          JWT_SECRET_KEY: test_secret_key_for_ci
+          JWT_ALGORITHM: HS256
+          JWT_EXPIRE_MINUTES: "60"
+          APP_ENV: local
+          LOG_LEVEL: INFO

@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAG Chatbot</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #0f1117;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        /* ── NAV ── */
+        nav {
+            background: #1a1d27;
+            border-bottom: 1px solid #2d3148;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            height: 56px;
+            gap: 8px;
+        }
+
+        nav .logo {
+            font-weight: 700;
+            font-size: 18px;
+            color: #7c6af7;
+            margin-right: auto;
+        }
+
+        nav button {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all .15s;
+        }
+
+        nav button:hover {
+            background: #2d3148;
+            color: #e2e8f0;
+        }
+
+        nav button.active {
+            background: #2d3148;
+            color: #7c6af7;
+            font-weight: 600;
+        }
+
+        nav button#logoutBtn {
+            color: #f87171;
+            margin-left: 8px;
+        }
+
+        nav button#logoutBtn:hover {
+            background: #2d1f1f;
+        }
+
+        /* ── PAGES ── */
+        .page {
+            display: none;
+            max-width: 860px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* ── CARD ── */
+        .card {
+            background: #1a1d27;
+            border: 1px solid #2d3148;
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #c4b5fd;
+        }
+
+        /* ── FORM ── */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        input[type=text],
+        input[type=email],
+        input[type=password] {
+            width: 100%;
+            background: #0f1117;
+            border: 1px solid #2d3148;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+            transition: border .15s;
+        }
+
+        input:focus {
+            border-color: #7c6af7;
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: opacity .15s;
+        }
+
+        .btn:hover {
+            opacity: .85;
+        }
+
+        .btn-primary {
+            background: #7c6af7;
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: #2d3148;
+            color: #e2e8f0;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .btn:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        /* ── TABS (auth) ── */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+        }
+
+        .tab-bar button {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #2d3148;
+            background: #0f1117;
+            color: #94a3b8;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all .15s;
+        }
+
+        .tab-bar button.active {
+            background: #7c6af7;
+            color: #fff;
+            border-color: #7c6af7;
+        }
+
+        /* ── ALERT ── */
+        .alert {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-error {
+            background: #2d1f1f;
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+        }
+
+        .alert-success {
+            background: #1a2d1f;
+            border: 1px solid #22c55e;
+            color: #86efac;
+        }
+
+        /* ── CHAT ── */
+        #chatMessages {
+            height: 420px;
+            overflow-y: auto;
+            padding: 16px;
+            background: #0f1117;
+            border-radius: 8px;
+            border: 1px solid #2d3148;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .msg {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .msg.user {
+            background: #7c6af7;
+            color: #fff;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+
+        .msg.assistant {
+            background: #1a1d27;
+            border: 1px solid #2d3148;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+
+        .msg .citations {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-row input {
+            flex: 1;
+            background: #0f1117;
+            border: 1px solid #2d3148;
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .chat-input-row input:focus {
+            border-color: #7c6af7;
+        }
+
+        .conv-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .conv-item {
+            padding: 8px 12px;
+            background: #0f1117;
+            border: 1px solid #2d3148;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #94a3b8;
+            transition: all .15s;
+        }
+
+        .conv-item:hover,
+        .conv-item.active {
+            border-color: #7c6af7;
+            color: #c4b5fd;
+        }
+
+        /* ── INGEST ── */
+        .drop-zone {
+            border: 2px dashed #2d3148;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: border .15s;
+            margin-bottom: 16px;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #7c6af7;
+        }
+
+        .drop-zone p {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        .drop-zone .icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* ── USAGE TABLE ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            text-align: left;
+            padding: 10px 12px;
+            color: #94a3b8;
+            border-bottom: 1px solid #2d3148;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #1a1d27;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-llm {
+            background: #2d1f4d;
+            color: #c4b5fd;
+        }
+
+        .badge-embedding {
+            background: #1f2d3d;
+            color: #7dd3fc;
+        }
+
+        /* ── SPINNER ── */
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, .3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .6s linear infinite;
+            margin-right: 6px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #4a5568;
+            padding: 40px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <span class="logo">⚡ RAG Chatbot</span>
+        <button class="nav-btn active" data-page="authPage">Auth</button>
+        <button class="nav-btn" data-page="chatPage">Chat</button>
+        <button class="nav-btn" data-page="ingestPage">Ingest</button>
+        <button class="nav-btn" data-page="usagePage">Usage</button>
+        <button id="logoutBtn" style="display:none">Logout</button>
+    </nav>
+
+    <!-- ── AUTH PAGE ── -->
+    <div id="authPage" class="page active">
+        <div class="card" style="max-width:420px;margin:0 auto">
+            <div class="tab-bar">
+                <button class="active" id="loginTab">Login</button>
+                <button id="registerTab">Register</button>
+            </div>
+
+            <div id="authAlert" class="alert"></div>
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="you@example.com" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" />
+                </div>
+                <button class="btn btn-primary" id="loginBtn" style="width:100%">Login</button>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" style="display:none">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="regUsername" placeholder="karthik" />
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="regEmail" placeholder="you@example.com" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="regPassword" placeholder="min 8 characters" />
+                </div>
+                <button class="btn btn-primary" id="registerBtn" style="width:100%">Register</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── CHAT PAGE ── -->
+    <div id="chatPage" class="page">
+        <div style="display:flex;gap:20px">
+            <!-- Conversations sidebar -->
+            <div style="width:220px;flex-shrink:0">
+                <div class="card" style="padding:16px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                        <span style="font-size:13px;color:#94a3b8">Conversations</span>
+                        <button class="btn btn-secondary" id="newChatBtn" style="padding:4px 10px;font-size:12px">+
+                            New</button>
+                    </div>
+                    <div id="convList" class="conv-list">
+                        <div class="empty-state" style="padding:20px">No conversations</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat area -->
+            <div style="flex:1">
+                <div class="card">
+                    <div id="chatMessages">
+                        <div class="empty-state">Ask a question about your documents</div>
+                    </div>
+                    <div id="chatAlert" class="alert"></div>
+                    <div class="chat-input-row">
+                        <input type="text" id="chatInput" placeholder="Ask something..." />
+                        <button class="btn btn-primary" id="sendBtn">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── INGEST PAGE ── -->
+    <div id="ingestPage" class="page">
+        <div class="card">
+            <h2>Upload Document</h2>
+            <div id="ingestAlert" class="alert"></div>
+            <div class="drop-zone" id="dropZone">
+                <div class="icon">📄</div>
+                <p>Drop a PDF or Markdown file here</p>
+                <p style="margin-top:6px;font-size:12px">or click to browse</p>
+                <input type="file" id="fileInput" accept=".pdf,.md,.txt" />
+            </div>
+            <div id="selectedFile" style="display:none;margin-bottom:16px;font-size:13px;color:#94a3b8"></div>
+            <button class="btn btn-primary" id="uploadBtn" disabled>Upload & Ingest</button>
+        </div>
+    </div>
+
+    <!-- ── USAGE PAGE ── -->
+    <div id="usagePage" class="page">
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                <h2 style="margin:0">Token Usage Summary</h2>
+                <button class="btn btn-secondary" id="refreshUsageBtn">Refresh</button>
+            </div>
+            <div id="usageAlert" class="alert"></div>
+            <table id="summaryTable">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Type</th>
+                        <th>Input Tokens</th>
+                        <th>Output Tokens</th>
+                        <th>Total Tokens</th>
+                        <th>Calls</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryBody">
+                    <tr>
+                        <td colspan="6" class="empty-state">No usage data yet</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>Recent Usage Records</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Model</th>
+                        <th>Input</th>
+                        <th>Output</th>
+                        <th>Total</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="usageBody">
+                    <tr>
+                        <td colspan="6" class="empty-state">No records yet</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API = 'http://localhost:8000/api/v1';
+        let token = localStorage.getItem('token') || null;
+        let currentConvId = null;
+
+        // ── INIT ──
+        function init() {
+            if (token) {
+                showLoggedInState();
+                loadConversations();
+            }
+        }
+
+        function showLoggedInState() {
+            document.getElementById('logoutBtn').style.display = 'block';
+            document.querySelectorAll('.nav-btn').forEach(b => b.style.display = 'inline-block');
+            showPage('chatPage');
+        }
+
+        // ── NAV ──
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                showPage(btn.dataset.page);
+                if (btn.dataset.page === 'usagePage') loadUsage();
+                if (btn.dataset.page === 'chatPage') loadConversations();
+            });
+        });
+
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.page === id);
+            });
+        }
+
+        // ── AUTH TABS ──
+        document.getElementById('loginTab').addEventListener('click', () => {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginTab').classList.add('active');
+            document.getElementById('registerTab').classList.remove('active');
+        });
+        document.getElementById('registerTab').addEventListener('click', () => {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('registerTab').classList.add('active');
+            document.getElementById('loginTab').classList.remove('active');
+        });
+
+        // ── ALERT HELPERS ──
+        function showAlert(id, msg, type = 'error') {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.className = `alert alert-${type} show`;
+            setTimeout(() => el.classList.remove('show'), 4000);
+        }
+
+        // ── API HELPER ──
+        async function api(path, options = {}) {
+            const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            if (options.body instanceof FormData) delete headers['Content-Type'];
+            const res = await fetch(API + path, { ...options, headers });
+            const data = res.headers.get('content-type')?.includes('json') ? await res.json() : {};
+            if (!res.ok) throw new Error(data.detail?.message || data.detail || 'Request failed');
+            return data;
+        }
+
+        // ── LOGIN ──
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Logging in...';
+            try {
+                const data = await api('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value,
+                    })
+                });
+                token = data.access_token;
+                localStorage.setItem('token', token);
+                showLoggedInState();
+            } catch (e) {
+                showAlert('authAlert', e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Login';
+            }
+        });
+
+        // ── REGISTER ──
+        document.getElementById('registerBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('registerBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Registering...';
+            try {
+                await api('/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: document.getElementById('regUsername').value,
+                        email: document.getElementById('regEmail').value,
+                        password: document.getElementById('regPassword').value,
+                    })
+                });
+                showAlert('authAlert', 'Registered! Please login.', 'success');
+                document.getElementById('loginTab').click();
+            } catch (e) {
+                showAlert('authAlert', e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Register';
+            }
+        });
+
+        // ── LOGOUT ──
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            token = null;
+            localStorage.removeItem('token');
+            currentConvId = null;
+            document.getElementById('logoutBtn').style.display = 'none';
+            showPage('authPage');
+        });
+
+        // ── CONVERSATIONS ──
+        async function loadConversations() {
+            if (!token) return;
+            try {
+                const convs = await api('/chat/conversations');
+                const list = document.getElementById('convList');
+                if (!convs.length) {
+                    list.innerHTML = '<div class="empty-state" style="padding:20px">No conversations</div>';
+                    return;
+                }
+                list.innerHTML = convs.map(c => `
+        <div class="conv-item ${c.id === currentConvId ? 'active' : ''}"
+             onclick="loadConversation('${c.id}', this)">
+          ${c.title || 'Untitled'}
+        </div>`).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadConversation(id, el) {
+            currentConvId = id;
+            document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            try {
+                const msgs = await api(`/chat/conversations/${id}`);
+                const box = document.getElementById('chatMessages');
+                box.innerHTML = msgs.map(m => renderMsg(m.role, m.content, m.sources)).join('');
+                box.scrollTop = box.scrollHeight;
+            } catch (e) { showAlert('chatAlert', e.message); }
+        }
+
+        document.getElementById('newChatBtn').addEventListener('click', () => {
+            currentConvId = null;
+            document.getElementById('chatMessages').innerHTML =
+                '<div class="empty-state">Ask a question about your documents</div>';
+            document.querySelectorAll('.conv-item').forEach(i => i.classList.remove('active'));
+        });
+
+        // ── CHAT ──
+        function renderMsg(role, content, sources) {
+            const citations = sources?.length
+                ? `<div class="citations">Sources: ${sources.map(s => s.source).join(', ')}</div>`
+                : '';
+            return `<div class="msg ${role}">${content}${citations}</div>`;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const q = input.value.trim();
+            if (!q) return;
+            input.value = '';
+
+            const box = document.getElementById('chatMessages');
+            if (box.querySelector('.empty-state')) box.innerHTML = '';
+            box.innerHTML += renderMsg('user', q, null);
+            box.scrollTop = box.scrollHeight;
+
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>';
+
+            try {
+                const data = await api('/chat/', {
+                    method: 'POST',
+                    body: JSON.stringify({ question: q, conversation_id: currentConvId })
+                });
+                currentConvId = data.conversation_id;
+                box.innerHTML += renderMsg('assistant', data.answer, data.citations);
+                box.scrollTop = box.scrollHeight;
+                loadConversations();
+            } catch (e) {
+                showAlert('chatAlert', e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send';
+            }
+        }
+
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        document.getElementById('chatInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // ── INGEST ──
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        let selectedFile = null;
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            setFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+
+        function setFile(file) {
+            if (!file) return;
+            selectedFile = file;
+            document.getElementById('selectedFile').style.display = 'block';
+            document.getElementById('selectedFile').textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            document.getElementById('uploadBtn').disabled = false;
+        }
+
+        document.getElementById('uploadBtn').addEventListener('click', async () => {
+            if (!selectedFile) return;
+            const btn = document.getElementById('uploadBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Uploading...';
+            try {
+                const form = new FormData();
+                form.append('file', selectedFile);
+                const data = await api('/ingest/', { method: 'POST', body: form });
+                showAlert('ingestAlert', `✓ ${data.document_name} — ${data.chunks_stored} chunks stored`, 'success');
+                selectedFile = null;
+                document.getElementById('selectedFile').style.display = 'none';
+                fileInput.value = '';
+            } catch (e) {
+                showAlert('ingestAlert', e.message);
+            } finally {
+                btn.disabled = true;
+                btn.textContent = 'Upload & Ingest';
+            }
+        });
+
+        // ── USAGE ──
+        async function loadUsage() {
+            if (!token) return;
+            try {
+                const [summary, records] = await Promise.all([
+                    api('/usage/summary'),
+                    api('/usage/')
+                ]);
+
+                const sb = document.getElementById('summaryBody');
+                sb.innerHTML = summary.length ? summary.map(r => `
+        <tr>
+          <td style="font-size:12px;color:#94a3b8">${r.model_id}</td>
+          <td><span class="badge badge-${r.model_type}">${r.model_type}</span></td>
+          <td>${r.total_input_tokens.toLocaleString()}</td>
+          <td>${r.total_output_tokens.toLocaleString()}</td>
+          <td style="font-weight:600;color:#c4b5fd">${r.total_tokens.toLocaleString()}</td>
+          <td>${r.call_count}</td>
+        </tr>`).join('')
+                    : '<tr><td colspan="6" class="empty-state">No usage data yet</td></tr>';
+
+                const ub = document.getElementById('usageBody');
+                ub.innerHTML = records.length ? records.slice(0, 20).map(r => `
+        <tr>
+          <td><span class="badge badge-${r.model_type}">${r.model_type}</span></td>
+          <td style="font-size:12px;color:#94a3b8">${r.model_id}</td>
+          <td>${r.input_tokens}</td>
+          <td>${r.output_tokens}</td>
+          <td style="font-weight:600">${r.total_tokens}</td>
+          <td style="font-size:12px;color:#94a3b8">${new Date(r.created_at).toLocaleString()}</td>
+        </tr>`).join('')
+                    : '<tr><td colspan="6" class="empty-state">No records yet</td></tr>';
+            } catch (e) {
+                showAlert('usageAlert', e.message);
+            }
+        }
+
+        document.getElementById('refreshUsageBtn').addEventListener('click', loadUsage);
+
+        init();
+    </script>
+</body>
+
+</html>

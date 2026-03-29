@@ -1,4 +1,5 @@
 from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +12,7 @@ class Settings(BaseSettings):
 
     # Bedrock
     bedrock_embedding_model_id: str = "amazon.titan-embed-text-v2:0"
-    bedrock_llm_model_id: str = "us.anthropic.claude-3-haiku-20240307-v1:0"
+    bedrock_llm_model_id: str = "us.anthropic.claude-sonnet-4-20250514-v1:0"
 
     # PostgreSQL
     database_url: str

@@ -1,5 +1,6 @@
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from Src.Repository.Models.token_usage_model import TokenUsage
 
 
@@ -37,7 +38,7 @@ class TokenUsageRepository:
         )
         return list(result.scalars().all())
 
-    async def get_usage_summary(self, user_id: str) -> dict:
+    async def get_usage_summary(self, user_id: str) -> list[dict]:  # type: ignore[override]
         result = await self._db.execute(
             select(
                 TokenUsage.model_type,

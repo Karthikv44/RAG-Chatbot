@@ -3,18 +3,20 @@ Document ingestion service.
 Loads PDF/Markdown files, chunks them, and stores in ChromaDB.
 Captures embedding token usage per ingestion.
 """
+
 import os
+
 from langchain_community.document_loaders import PyPDFLoader, UnstructuredMarkdownLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from Src.Repository.vector_repository import ChromaVectorRepository
-from Src.Repository.token_usage_repository import TokenUsageRepository
-from Src.Service.bedrock_factory import get_embedding_model
 from Src.Config.config import get_settings
-from Src.Error_Codes.exceptions import IngestionException, ErrorCode
+from Src.Error_Codes.exceptions import ErrorCode, IngestionException
 from Src.Loggers.logger import get_logger
+from Src.Repository.token_usage_repository import TokenUsageRepository
+from Src.Repository.vector_repository import ChromaVectorRepository
+from Src.Service.bedrock_factory import get_embedding_model
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -23,9 +25,10 @@ CHUNK_SIZE = 600
 CHUNK_OVERLAP = 100
 SUPPORTED_EXTENSIONS = {".pdf", ".md", ".txt"}
 
+
 # Titan v2 uses ~1 token per 4 chars (approximate for tracking)
-def _estimate_tokens(text: str) -> int:
-    return max(1, len(text) // 4)
+def _estimate_tokens(char_count: int) -> int:
+    return max(1, char_count // 4)
 
 
 class IngestionService:
@@ -52,6 +55,7 @@ class IngestionService:
             loader = UnstructuredMarkdownLoader(file_path)
         else:
             from langchain_community.document_loaders import TextLoader
+
             loader = TextLoader(file_path)
         return loader.load()
 
@@ -66,6 +70,11 @@ class IngestionService:
             estimated_tokens = _estimate_tokens(total_chars)
 
             count = await self._vector_repo.add_documents(chunks)
+
+            # Rebuild BM25 index to include new chunks
+            from Src.Service.bm25_service import build_bm25_from_chroma
+
+            await build_bm25_from_chroma()
 
             # Record embedding token usage
             await self._token_repo.record(
